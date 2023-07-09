@@ -1,9 +1,14 @@
 package com.example.myapplication;
 
+import android.Manifest;
 import android.app.AlertDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -15,6 +20,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -28,6 +35,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView waterCountTextView;
     private TextView remainingWaterTextView;
 
+    // Notification channel constants
+    private static final String CHANNEL_ID = "WaterReminderChannel";
+    private static final String CHANNEL_NAME = "Water Reminder";
+    private static final String CHANNEL_DESCRIPTION = "Channel for water reminder notifications";
+
+    private Button notificationButton;
+    private int notificationTimePeriod = 60; // Default notification time period in minutes
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         cupImageView = findViewById(R.id.cupImageView);
         waterCountTextView = findViewById(R.id.waterCountTextView);
         remainingWaterTextView = findViewById(R.id.remainingWaterTextView);
+        notificationButton = findViewById(R.id.notificationButton);
 
         Button button50ml = findViewById(R.id.button50ml);
         Button button100ml = findViewById(R.id.button100ml);
@@ -50,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         button200ml.setOnClickListener(this);
         button250ml.setOnClickListener(this);
         buttonCustom.setOnClickListener(this);
+        notificationButton.setOnClickListener(this);
 
         // Set current date
         SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE dd MMMM", Locale.getDefault());
@@ -70,6 +87,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (waterCount >= targetWaterCount) {
             congratulateUser();
         }
+
+        // Create the notification channel
+        createNotificationChannel();
     }
 
     @Override
@@ -94,6 +114,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.buttonCustom:
                 showCustomInputDialog();
+                break;
+            case R.id.notificationButton:
+                showNotificationTimeInputDialog();
                 break;
         }
 
@@ -174,9 +197,65 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         dialog.show();
     }
 
+    private void showNotificationTimeInputDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Notification Time Period (minutes)");
+
+        // Inflate the dialog layout
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_notification_time_input, null);
+        builder.setView(dialogView);
+
+        final EditText customTimeEditText = dialogView.findViewById(R.id.editTextCustomTime);
+        customTimeEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
+
+        builder.setPositiveButton("Set", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String customTimeString = customTimeEditText.getText().toString();
+                if (!customTimeString.isEmpty()) {
+                    notificationTimePeriod = Integer.parseInt(customTimeString);
+                    Toast.makeText(MainActivity.this, "Notification time period set to " + notificationTimePeriod + " minutes", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
     private void congratulateUser() {
         Intent intent = new Intent(MainActivity.this, CongratulatoryActivity.class);
         startActivity(intent);
         finish(); // Finish the current activity to prevent going back to it from the congratulatory activity
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Check if the VIBRATE permission is granted
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.VIBRATE)
+                    == PackageManager.PERMISSION_GRANTED) {
+                // VIBRATE permission is granted, create the notification channel
+                NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME,
+                        NotificationManager.IMPORTANCE_DEFAULT);
+                channel.setDescription(CHANNEL_DESCRIPTION);
+
+                NotificationManager notificationManager = getSystemService(NotificationManager.class);
+                notificationManager.createNotificationChannel(channel);
+            } else {
+                // VIBRATE permission is not granted, handle the situation accordingly
+                // For example, you can request the permission from the user
+                // or display a message explaining the need for the permission
+                Toast.makeText(this, "VIBRATE permission not granted. Notifications may not work properly.",
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }
