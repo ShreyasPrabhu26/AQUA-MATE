@@ -2,6 +2,8 @@ package com.example.myapplication;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -21,10 +23,10 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private int waterCount = 0;
+    private int targetWaterCount = 3000; // Target water count in milliliters
     private ImageView cupImageView;
     private TextView waterCountTextView;
-    private TextView dateTextView;
-    private TextView waterCountValueTextView;
+    private TextView remainingWaterTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,8 +35,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         cupImageView = findViewById(R.id.cupImageView);
         waterCountTextView = findViewById(R.id.waterCountTextView);
-        dateTextView = findViewById(R.id.dateTextView);
-        waterCountValueTextView = findViewById(R.id.buttonCustom);
+        remainingWaterTextView = findViewById(R.id.remainingWaterTextView);
 
         Button button50ml = findViewById(R.id.button50ml);
         Button button100ml = findViewById(R.id.button100ml);
@@ -53,7 +54,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // Set current date
         SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE dd MMMM", Locale.getDefault());
         String currentDate = dateFormat.format(new Date());
+        TextView dateTextView = findViewById(R.id.dateTextView);
         dateTextView.setText(currentDate);
+
+        // Retrieve water count for the current day
+        SharedPreferences preferences = getSharedPreferences("WaterCounts", MODE_PRIVATE);
+        waterCount = preferences.getInt("waterCount", 0);
+        updateWaterCountTextView();
+
+        // Calculate remaining water level
+        int remainingWaterLevel = targetWaterCount - waterCount;
+        updateRemainingWaterTextView(remainingWaterLevel);
+
+        // Check if water count reaches 0
+        if (waterCount >= targetWaterCount) {
+            congratulateUser();
+        }
     }
 
     @Override
@@ -85,11 +101,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             waterCount += amountToAdd;
             updateWaterCountTextView();
             Toast.makeText(MainActivity.this, "Added " + amountToAdd + "ml of water", Toast.LENGTH_SHORT).show();
+
+            // Store the water count in SharedPreferences
+            SharedPreferences preferences = getSharedPreferences("WaterCounts", MODE_PRIVATE);
+            preferences.edit().putInt("waterCount", waterCount).apply();
+
+            // Calculate remaining water level
+            int remainingWaterLevel = targetWaterCount - waterCount;
+            updateRemainingWaterTextView(remainingWaterLevel);
+
+            // Check if water count reaches 0
+            if (waterCount >= targetWaterCount) {
+                congratulateUser();
+            }
         }
     }
 
     private void updateWaterCountTextView() {
         waterCountTextView.setText(waterCount + " ml");
+    }
+
+    private void updateRemainingWaterTextView(int remainingWaterLevel) {
+        remainingWaterTextView.setText(remainingWaterLevel + " ml remaining");
     }
 
     private void showCustomInputDialog() {
@@ -113,6 +146,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     waterCount += customAmount;
                     updateWaterCountTextView();
                     Toast.makeText(MainActivity.this, "Added " + customAmount + "ml of water", Toast.LENGTH_SHORT).show();
+
+                    // Store the water count in SharedPreferences
+                    SharedPreferences preferences = getSharedPreferences("WaterCounts", MODE_PRIVATE);
+                    preferences.edit().putInt("waterCount", waterCount).apply();
+
+                    // Calculate remaining water level
+                    int remainingWaterLevel = targetWaterCount - waterCount;
+                    updateRemainingWaterTextView(remainingWaterLevel);
+
+                    // Check if water count reaches 0
+                    if (waterCount >= targetWaterCount) {
+                        congratulateUser();
+                    }
                 }
             }
         });
@@ -126,5 +172,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         AlertDialog dialog = builder.create();
         dialog.show();
+    }
+
+    private void congratulateUser() {
+        Intent intent = new Intent(MainActivity.this, CongratulatoryActivity.class);
+        startActivity(intent);
+        finish(); // Finish the current activity to prevent going back to it from the congratulatory activity
     }
 }
