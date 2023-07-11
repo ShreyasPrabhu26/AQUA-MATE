@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -19,8 +20,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.os.Handler;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
@@ -29,6 +32,9 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
+    Handler myhandler= new Handler();
+    private static final String CHANNEL_ID = "my_channel_id";
+    private static final int NOTIFICATION_ID = 1;
     private int waterCount = 0;
     private int targetWaterCount = 3000; // Target water count in milliliters
     private ImageView cupImageView;
@@ -36,9 +42,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView remainingWaterTextView;
 
     // Notification channel constants
-    private static final String CHANNEL_ID = "WaterReminderChannel";
-    private static final String CHANNEL_NAME = "Water Reminder";
-    private static final String CHANNEL_DESCRIPTION = "Channel for water reminder notifications";
+    //private static final String CHANNEL_ID = "WaterReminderChannel";
+    //private static final String CHANNEL_NAME = "Water Reminder";
+    //private static final String CHANNEL_DESCRIPTION = "Channel for water reminder notifications";
 
     private Button notificationButton;
     private int notificationTimePeriod = 60; // Default notification time period in minutes
@@ -85,12 +91,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // Check if water count reaches 0
         if (waterCount >= targetWaterCount) {
+            createNotificationChannel();
             congratulateUser();
         }
+
+        myhandler.postDelayed(ThreadCount,5000);
+
 
         // Create the notification channel
         createNotificationChannel();
     }
+    public Runnable ThreadCount=new Runnable() {
+        @Override
+        public void run() {
+            createNotification();
+            myhandler.postDelayed(ThreadCount,5000);
+        }
+    };
 
     @Override
     public void onClick(View v) {
@@ -102,6 +119,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.button100ml:
                 amountToAdd = 100;
+                createNotification();
+
                 break;
             case R.id.button150ml:
                 amountToAdd = 150;
@@ -239,23 +258,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Check if the VIBRATE permission is granted
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.VIBRATE)
-                    == PackageManager.PERMISSION_GRANTED) {
-                // VIBRATE permission is granted, create the notification channel
-                NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME,
-                        NotificationManager.IMPORTANCE_DEFAULT);
-                channel.setDescription(CHANNEL_DESCRIPTION);
-
-                NotificationManager notificationManager = getSystemService(NotificationManager.class);
-                notificationManager.createNotificationChannel(channel);
-            } else {
-                // VIBRATE permission is not granted, handle the situation accordingly
-                // For example, you can request the permission from the user
-                // or display a message explaining the need for the permission
-                Toast.makeText(this, "VIBRATE permission not granted. Notifications may not work properly.",
-                        Toast.LENGTH_SHORT).show();
-            }
+            CharSequence name = "My Channel";
+            String description = "My Channel Description";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
         }
     }
+
+    private void createNotification() {
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.cup_image)
+                .setContentTitle("My Notification")
+                .setContentText("This is a notification created by clicking a button.")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
+    }
+
+
+
+
 }
