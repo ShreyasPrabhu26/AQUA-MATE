@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //private static final String CHANNEL_DESCRIPTION = "Channel for water reminder notifications";
 
     private Button notificationButton;
-    private int notificationTimePeriod = 60; // Default notification time period in minutes
+    public int notificationTimePeriod = 60; // Default notification time period in minutes
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             congratulateUser();
         }
 
-        myhandler.postDelayed(ThreadCount,5000);
+        myhandler.postDelayed(ThreadCount,(notificationTimePeriod*1000));
 
 
         // Create the notification channel
@@ -105,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void run() {
             createNotification();
-            myhandler.postDelayed(ThreadCount,5000);
+            myhandler.postDelayed(ThreadCount,(notificationTimePeriod*1000));
         }
     };
 
@@ -234,7 +234,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 String customTimeString = customTimeEditText.getText().toString();
                 if (!customTimeString.isEmpty()) {
                     notificationTimePeriod = Integer.parseInt(customTimeString);
-                    Toast.makeText(MainActivity.this, "Notification time period set to " + notificationTimePeriod + " minutes", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Notification time period set to " + notificationTimePeriod + " seconds", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -271,8 +271,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void createNotification() {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.cup_image)
-                .setContentTitle("My Notification")
-                .setContentText("This is a notification created by clicking a button.")
+                .setContentTitle("Aqua-Mate")
+                .setContentText("Drink Water.")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
 
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
